@@ -1,0 +1,716 @@
+contract_version: "1.0"
+
+service:
+  name: "<service-name>"
+  workload_type: "<http-api | grpc-api | worker | consumer | cronjob | batch>"
+  criticality: "<low | medium | high | critical>"
+  description: "<Short description of the service and its responsibilities>"
+
+  owner:
+    team: "<team-name>"
+    contact: "<team-contact>"
+    escalation_contact: "<escalation-contact>"
+
+  repository:
+    url: "<repository-url>"
+    branch: "<branch-name>"
+
+  tags:
+    environment: "<environment>"
+    domain: "<business-domain>"
+    cost_center: "<cost-center>"
+
+platform:
+  environment: "<development | staging | production>"
+  cluster: "<cluster-name>"
+  namespace: "<namespace>"
+  deployment_strategy: "<helm | gitops | operator | custom>"
+
+  capabilities:
+    ingress: "<required | optional | disabled>"
+    autoscaling: "<required | optional | disabled>"
+    persistent_storage: "<required | optional | disabled>"
+    external_secrets: "<required | optional | disabled>"
+    observability: "<required | optional | disabled>"
+
+  labels: {}
+  annotations: {}
+
+build:
+  dockerfile: "<path-to-dockerfile>"
+  base_image: "<image:tag>"
+  context: "<build-context-path>"
+
+  build_args_required: false
+  build_args: []
+
+  image:
+    repository: "<image-repository>"
+    tag_strategy: "<git-sha | release-tag | digest>"
+    immutable: true
+
+  security:
+    vulnerability_scanning_required: true
+    image_signing_required: false
+    provenance_required: false
+
+  ci:
+    required: true
+    pipeline: "<ci-pipeline-name>"
+    build_command: "<build-command>"
+    artifact: "<artifact-name>"
+
+runtime:
+  port: "<application-port>"
+  protocol: "<http | https | grpc | tcp | udp>"
+
+  command: null
+  args: []
+
+  working_directory: null
+
+  user:
+    non_root: true
+    uid: null
+    gid: null
+
+  health:
+    enabled: true
+    endpoint: "<health-endpoint>"
+    method: GET
+    port: null
+    initial_delay_seconds: null
+    period_seconds: null
+    timeout_seconds: null
+    failure_threshold: null
+    success_threshold: null
+
+  readiness:
+    enabled: true
+    endpoint: "<readiness-endpoint>"
+    method: GET
+    port: null
+    initial_delay_seconds: null
+    period_seconds: null
+    timeout_seconds: null
+    failure_threshold: null
+    success_threshold: null
+
+  startup:
+    enabled: false
+    endpoint: null
+    expected_time: "<startup-duration>"
+    failure_threshold: null
+    period_seconds: null
+
+  startup_timeout: "<startup-timeout>"
+
+  shutdown:
+    graceful: true
+    timeout: "<shutdown-timeout>"
+    termination_grace_period: null
+
+  lifecycle:
+    restart_policy: "<always | on-failure | never>"
+    handles_sigterm: true
+    drains_connections: true
+
+ports:
+  - name: "<port-name>"
+    port: "<container-port>"
+    protocol: "<TCP | UDP>"
+    purpose: "<main-api | metrics | admin | other>"
+    exposed_to_cluster: true
+    exposed_externally: false
+
+network:
+  service:
+    enabled: true
+    type: "<ClusterIP | NodePort | LoadBalancer | headless>"
+
+  policy:
+    required: true
+    ingress_from: []
+    egress_to: []
+    unrestricted_egress: false
+
+  service_mesh:
+    enabled: false
+    mode: null
+    mtls_required: false
+
+ingress:
+  enabled: false
+  host: null
+  path_prefix: "/"
+  target_port: null
+  class: null
+
+  tls:
+    required: true
+    secret_ref: null
+    certificate_issuer: null
+
+  rate_limiting:
+    enabled: false
+    requests_per_second: null
+    burst: null
+
+  cors:
+    enabled: false
+    allowed_origins: []
+    allowed_methods: []
+    allowed_headers: []
+
+  authentication:
+    required: false
+    mechanism: null
+
+  timeouts:
+    request: null
+    connection: null
+
+  rewrite:
+    enabled: false
+    target: null
+
+dependencies:
+  internal_services:
+    - name: "<service-name>"
+      namespace: "<namespace>"
+      required_at_startup: true
+      endpoint: "<service-endpoint>"
+
+      timeout: "<timeout>"
+
+      retry:
+        enabled: true
+        attempts: "<number-of-attempts>"
+        backoff: "<fixed | exponential>"
+        max_backoff: null
+
+      circuit_breaker:
+        enabled: false
+        failure_threshold: null
+        recovery_timeout: null
+
+      failure_behavior: "<fail | degrade | retry | ignore>"
+
+  databases:
+    - name: "<database-name>"
+      type: "<postgresql | mysql | mariadb | mongodb | other>"
+      version: null
+
+      required_at_startup: true
+
+      connection:
+        secret_ref: "<secret-name>"
+        host: null
+        port: null
+        database: null
+        ssl_required: true
+
+      pool:
+        min_connections: null
+        max_connections: null
+        connection_timeout: null
+        idle_timeout: null
+
+      migrations:
+        required: false
+        strategy: "<startup | job | pipeline | operator>"
+        backward_compatible: true
+
+      backup:
+        required: false
+        retention: null
+        recovery_point_objective: null
+        recovery_time_objective: null
+
+      failure_behavior: "<fail | degrade | retry>"
+
+  cache:
+    - name: "<cache-name>"
+      type: "<redis | memcached | other>"
+      required_at_startup: false
+
+      endpoint: null
+      secret_ref: null
+
+      timeout: "<timeout>"
+
+      retry:
+        enabled: true
+        attempts: "<number-of-attempts>"
+        backoff: exponential
+
+      data:
+        persistent: false
+        rebuildable: true
+
+      failure_behavior: "<degrade | fail | retry>"
+
+  message_brokers:
+    - name: "<broker-name>"
+      type: "<kafka | rabbitmq | nats | other>"
+
+      topic: null
+      queue: null
+
+      role: "<producer | consumer | producer-consumer>"
+
+      required_at_startup: false
+
+      consumer:
+        group_id: null
+        offset_reset: null
+        auto_commit: null
+        concurrency: null
+
+      producer:
+        delivery_guarantee: null
+        idempotent: null
+
+      retry:
+        enabled: true
+        attempts: null
+        backoff: exponential
+
+      dead_letter:
+        enabled: false
+        topic_or_queue: null
+
+      ordering_required: false
+
+      failure_behavior: "<retry | retry_then_fail | degrade | fail>"
+
+  external_apis:
+    - name: "<api-name>"
+      endpoint: "<api-endpoint>"
+      auth_method: "<none | api-key | oauth2 | mtls | other>"
+
+      required_at_startup: false
+
+      timeout: "<timeout>"
+
+      retry:
+        enabled: true
+        attempts: null
+        backoff: exponential
+
+      rate_limit:
+        enforced: false
+        requests_per_second: null
+
+      failure_behavior: "<fail | degrade | retry>"
+
+  failure_behavior:
+    critical_dependency_unavailable: "<fail | degrade | retry | queue>"
+    non_critical_dependency_unavailable: "<fail | degrade | retry | ignore>"
+    startup_failure: "<fail | retry | start-degraded>"
+
+configuration:
+  environment_variables:
+    - name: "<VARIABLE_NAME>"
+      required: true
+      default: null
+      description: "<Description of the variable>"
+      secret: false
+      source: "<configmap | secret | external-secret | default>"
+
+  config_maps:
+    - name: "<configmap-name>"
+      required: true
+      mount_path: null
+      keys: []
+
+  volumes:
+    - name: "<volume-name>"
+      type: "<configmap | secret | pvc | empty_dir | projected>"
+      required: false
+      mount_path: null
+      read_only: true
+      access_mode: null
+      size: null
+      storage_class: null
+
+  validation:
+    required_at_deployment: true
+    fail_on_missing_required_values: true
+
+secrets:
+  required: false
+
+  keys: []
+
+  management:
+    method: "<kubernetes-secret | external-secrets-operator | vault | other>"
+    secret_store_ref: null
+
+  rotation:
+    required: false
+    interval: null
+    restart_required: false
+
+  policy:
+    values_must_not_be_logged: true
+    values_must_not_be_in_repository: true
+
+testing:
+  required_before_deployment: true
+
+  unit:
+    required: true
+    command: "<unit-test-command>"
+
+  integration:
+    required: false
+    command: null
+    dependencies: []
+
+  contract:
+    required: false
+    command: null
+
+  smoke:
+    required: true
+    command: "<smoke-test-command>"
+
+  ci:
+    pipeline: "<ci-pipeline-name>"
+    command: "<ci-test-command>"
+
+  coverage:
+    required: false
+    minimum: null
+
+  security:
+    dependency_scan_required: true
+    container_scan_required: true
+    secret_scan_required: true
+
+  gates:
+    tests_must_pass: true
+    security_scan_must_pass: true
+    coverage_must_pass: false
+
+observability:
+  metrics:
+    enabled: true
+    path: "/metrics"
+    port: null
+    protocol: http
+
+    key_metrics: []
+
+    dashboards: []
+
+    slo:
+      enabled: false
+
+      availability:
+        target: null
+        window: null
+
+      latency:
+        percentile: null
+        target: null
+
+      error_rate:
+        target: null
+
+  logging:
+    enabled: true
+    format: "<json | text>"
+
+    important_fields:
+      - timestamp
+      - level
+      - message
+      - trace_id
+
+    retention: null
+
+    sensitive_data:
+      redaction_required: true
+      fields_to_redact: []
+
+  tracing:
+    enabled: false
+    instrumentation: null
+    propagator: null
+    sampling_rate: null
+
+  alerting:
+    enabled: true
+    rules: []
+    notification_channels: []
+
+resources:
+  requests:
+    cpu: "<cpu-request>"
+    memory: "<memory-request>"
+
+  limits:
+    cpu: "<cpu-limit>"
+    memory: "<memory-limit>"
+
+  gpu:
+    required: false
+    type: null
+    count: null
+
+  ephemeral_storage:
+    request: null
+    limit: null
+
+  jvm:
+    enabled: false
+    options: []
+
+scaling:
+  enabled: false
+
+  replicas:
+    min: 1
+    max: 1
+
+  strategy:
+    type: "<none | hpa | keda | custom>"
+    metric: null
+    target: null
+
+  multi_replica_safe: true
+
+  state:
+    stateless: true
+    local_state_required: false
+    shared_storage_required: false
+
+  disruption:
+    pod_disruption_budget:
+      enabled: false
+      min_available: null
+      max_unavailable: null
+
+  scheduling:
+    pod_anti_affinity:
+      enabled: false
+      topology_key: null
+
+    topology_spread:
+      enabled: false
+      constraints: []
+
+scheduling:
+  enabled: false
+
+  cronjob:
+    schedule: null
+    timezone: null
+    concurrency_policy: null
+    timeout: null
+    retry_on_failure: null
+    backoff_limit: null
+    successful_job_history: null
+    failed_job_history: null
+
+  worker:
+    concurrency: null
+    queue: null
+    graceful_shutdown: true
+    visibility_timeout: null
+
+security:
+  non_root: true
+
+  read_only_root_filesystem: true
+
+  capabilities:
+    drop_all: true
+    add: []
+
+  seccomp:
+    profile: "<runtime-default | custom | unconfined>"
+
+  network_policy:
+    required: true
+    ingress_allowed: []
+    egress_allowed: []
+
+  service_account:
+    required: false
+    name: null
+    automount_token: false
+
+  sensitive_data:
+    pii_handled: false
+    data_classification: "<public | internal | confidential | restricted>"
+
+  compliance:
+    requirements: []
+
+  supply_chain:
+    image_scan_required: true
+    signed_image_required: false
+    allowed_registries: []
+
+deployment:
+  strategy:
+    type: "<rolling | recreate | blue-green | canary>"
+    max_unavailable: null
+    max_surge: null
+
+  migrations:
+    enabled: false
+    strategy: null
+    rollback_compatible: true
+
+  startup_dependencies: []
+
+  graceful_shutdown:
+    enabled: true
+    timeout: "<shutdown-timeout>"
+
+  rollback:
+    safe: true
+    requires_manual_action: false
+    notes: "<Rollback limitations and prerequisites>"
+
+  known_issues: []
+
+  maintenance:
+    downtime_required: false
+    maintenance_window: null
+
+  hooks:
+    pre_deploy: []
+    post_deploy: []
+    pre_rollback: []
+    post_rollback: []
+
+reliability:
+  availability_target: null
+
+  recovery:
+    rto: null
+    rpo: null
+
+  disaster_recovery:
+    required: false
+    strategy: null
+    dependencies: []
+
+  graceful_degradation:
+    supported: false
+    behavior: null
+
+  capacity:
+    expected_requests_per_second: null
+    expected_concurrent_requests: null
+    expected_data_growth: null
+
+incident_response:
+  scenarios:
+    - scenario: dependency_unavailable
+      condition: "<Condition that triggers the scenario>"
+      severity: "<severity>"
+      action:
+        - "<First troubleshooting action>"
+        - "<Mitigation action>"
+      escalation: "<Escalation procedure>"
+
+    - scenario: high_error_rate
+      condition: "<Condition>"
+      severity: "<severity>"
+      action:
+        - "<Troubleshooting action>"
+        - "<Mitigation action>"
+      escalation: "<Escalation procedure>"
+
+    - scenario: memory_growth
+      condition: "<Condition>"
+      severity: "<severity>"
+      action:
+        - "<Troubleshooting action>"
+        - "<Mitigation action>"
+      escalation: "<Escalation procedure>"
+
+    - scenario: queue_lag
+      condition: "<Condition>"
+      severity: "<severity>"
+      action:
+        - "<Troubleshooting action>"
+        - "<Mitigation action>"
+      escalation: "<Escalation procedure>"
+
+  runbook:
+    required: true
+    url: "<runbook-url>"
+
+  escalation:
+    policy: "<escalation-policy>"
+
+contacts:
+  primary_owner:
+    team: "<team-name>"
+    contact: "<team-contact>"
+
+  on_call:
+    contact: "<on-call-contact>"
+
+  platform_team:
+    contact: "<platform-team-contact>"
+
+  security_team:
+    contact: null
+
+  runbook:
+    url: "<runbook-url>"
+
+automation:
+  enabled: true
+
+  managed_resources:
+    deployment: true
+    service: true
+    ingress: false
+    configmap: true
+    secrets: true
+    hpa: false
+    pdb: false
+    network_policy: true
+    servicemonitor: false
+    prometheusrule: false
+
+  application_managed_resources: []
+
+  overrides:
+    allowed: true
+    approval_required: false
+
+  defaults:
+    security_context: true
+    resource_requests: true
+    probes: true
+    labels: true
+
+validation:
+  enabled: true
+  required_fields: true
+  dependencies: true
+  resources: true
+  security: true
+  observability: true
+  schema_version: "<schema-version>"
+
+additional_notes: |
+  <Additional operational information>
+
+metadata:
+  last_updated: "<YYYY-MM-DD>"
+  maintained_by: "<team-or-person>"
+  contract_status: "<draft | active | deprecated>"
+  reviewed_by: []
+  review_interval: null
+  schema_version: "<schema-version>"
